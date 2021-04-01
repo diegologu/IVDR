@@ -40,10 +40,10 @@ void setup() {
   canMsg3.data[5] = 0x35; //5
   canMsg3.data[6] = 0x36; //6
   canMsg3.data[7] = 0x37; //7
-  
+
   while (!Serial);
   Serial.begin(115200);
-  
+
   mcp2515.reset();
   mcp2515.setBitrate(CAN_500KBPS, MCP_8MHZ);
   //mcp2515.setBitrate(CAN_125KBPS);
@@ -58,5 +58,5 @@ void loop() {
   delay(50);
   mcp2515.sendMessage(&canMsg3);
   delay(50);
-  
+
 }
