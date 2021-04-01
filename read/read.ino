@@ -3,15 +3,13 @@
 
 struct can_frame rawCanMsg;
 MCP2515 mcp2515(10);
-byte CanMsg[16];
 const int interruptPin = 2; //Pin where the INT is connected
-
 unsigned long time = 0;
 
-
+byte CanMsg[16];
 byte buf[160];
-byte* pserial = buf;
-byte* psave = buf;
+byte* pserial = buf; //this pointer tell what to write on serial monitor
+byte* psave = buf; //this pointer tell where to save on the buffer
 
 void setup() {
   Serial.begin(115200);
@@ -42,7 +40,6 @@ void loop() {
 
 
 void readCAN (){
-
 
   if(psave < pserial){
     return;
