@@ -1,7 +1,14 @@
 #include <SPI.h>
 #include <mcp2515.h>
+
 struct can_frame rawCanMsg;
+struct can_frame OBD2_Msg;
+
 MCP2515 mcp2515(10);
+
+const byte PIDs_OBD2[] = { 0x0C, 0x0D, 0x0A};
+const byte size_PIDs = 3;
+byte iPID = 0;
 const byte interruptPin = 2; //Pin where the INT is connected
 unsigned long time = 0;
 const byte sizeBuff = 128;
@@ -21,7 +28,25 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(interruptPin), readCAN, LOW);
   CanMsg[14] = 13;
   CanMsg[15] = 10;
+
+  //PIT
+  SREG = (SREG & 0b01111111);//deshabilitar interrupciones globales
+  TCNT2 = 0; // limpiar registro de la cuenta del timer-2
+  TIMSK2 = TIMSK2 | 0b00000001; //habilita interrupcion por Overflow
+  TCCR2B = 0b00000111; // reloj a 7812.5 Hz
+  SREG = (SREG & 0b01111111) | 0b10000000; //Habilitar interrupciones globales
+  OBD2_Msg.can_id = 0x7DF;
+  OBD2_Msg.can_dlc = 0x02;
+  OBD2_Msg.data[0] = 0x01; //Mode
+  OBD2_Msg.data[1] = PIDs_OBD2[iPID]; //PID
+  OBD2_Msg.data[2] = 0x00;
+  OBD2_Msg.data[3] = 0x00;
+  OBD2_Msg.data[4] = 0x00;
+  OBD2_Msg.data[5] = 0x00;
+  OBD2_Msg.data[6] = 0x00;
+  OBD2_Msg.data[7] = 0x00;
 }
+
 void loop() {
   byte* temp8 = buf+sizeBuff;
 
@@ -32,6 +57,17 @@ void loop() {
       pserial = buf;
     }
   }
+}
+
+ISR(TIMER2_OVF_vect){ //funcion del PIT cada 32.64ms
+  //mcp2515.sendMessage(&OBD2_Msg);
+  Serial.print("Request enviado con PID: ");
+  Serial.println(PIDs_OBD2[iPID]);
+  iPID++;
+  if(iPID == size_PIDs){
+    iPID = 0;
+  }
+  OBD2_Msg.data[1] = PIDs_OBD2[iPID];
 }
 
 void readCAN (){
