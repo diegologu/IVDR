@@ -9,6 +9,7 @@ MCP2515 mcp2515(10);
 const byte PIDs_OBD2[] = { 0x0C, 0x0D, 0x0A};
 const byte size_PIDs = 3;
 byte iPID = 0;
+
 const byte interruptPin = 2; //Pin where the INT is connected
 unsigned long time = 0;
 const byte sizeBuff = 128;
@@ -36,10 +37,9 @@ void setup() {
   TCCR2B = 0b00000111; // reloj a 7812.5 Hz
   SREG = (SREG & 0b01111111) | 0b10000000; //Habilitar interrupciones globales
   OBD2_Msg.can_id = 0x7DF;
-  OBD2_Msg.can_dlc = 0x02;
-  OBD2_Msg.data[0] = 0x01; //Mode
-  OBD2_Msg.data[1] = PIDs_OBD2[iPID]; //PID
-  OBD2_Msg.data[2] = 0x00;
+  OBD2_Msg.data[0] = 0x02; //Mode
+  OBD2_Msg.data[1] = 0x01;
+  OBD2_Msg.data[2] = PIDs_OBD2[iPID]; //PID
   OBD2_Msg.data[3] = 0x00;
   OBD2_Msg.data[4] = 0x00;
   OBD2_Msg.data[5] = 0x00;
@@ -60,14 +60,14 @@ void loop() {
 }
 
 ISR(TIMER2_OVF_vect){ //funcion del PIT cada 32.64ms
-  //mcp2515.sendMessage(&OBD2_Msg);
+  mcp2515.sendMessage(&OBD2_Msg);
   Serial.print("Request enviado con PID: ");
   Serial.println(PIDs_OBD2[iPID]);
   iPID++;
   if(iPID == size_PIDs){
     iPID = 0;
   }
-  OBD2_Msg.data[1] = PIDs_OBD2[iPID];
+  OBD2_Msg.data[2] = PIDs_OBD2[iPID];
 }
 
 void readCAN (){
