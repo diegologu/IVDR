@@ -1,19 +1,17 @@
 #include <SPI.h>
 #include <mcp2515.h>
-
 struct can_frame rawCanMsg;
 MCP2515 mcp2515(10);
-const int interruptPin = 2; //Pin where the INT is connected
+const byte interruptPin = 2; //Pin where the INT is connected
 unsigned long time = 0;
-
+const byte sizeBuff = 128;
 byte CanMsg[16];
-byte buf[160];
-byte* pserial = buf; //this pointer tell what to write on serial monitor
-byte* psave = buf; //this pointer tell where to save on the buffer
+byte buf[sizeBuff];
+byte* pserial = buf; //this pointer tells what to write on serial monitor
+byte* psave = buf; //this pointer tells where to save on the buffer
 
 void setup() {
   Serial.begin(115200);
-
   mcp2515.reset();
   mcp2515.setBitrate(CAN_500KBPS, MCP_8MHZ);
   //mcp2515.setBitrate(CAN_125KBPS);
@@ -24,30 +22,29 @@ void setup() {
   CanMsg[14] = 13;
   CanMsg[15] = 10;
 }
-
 void loop() {
+  byte* temp8 = buf+sizeBuff;
 
   while(pserial != psave){
-
     Serial.write(*pserial);
     pserial++;
-    if(pserial >= buf+160){
+    if(pserial >= buf+sizeBuff){
       pserial = buf;
     }
   }
 }
 
-
-
 void readCAN (){
-
-  if(psave < pserial){
+  byte temp8 = 0;
+  temp8 = psave-pserial;
+  temp8 = temp8 & 0x7F;
+  if(temp8 > 115){
+    Serial.println("Overflow");
+    delay(5000);
     return;
   }
-
   time = millis();
   mcp2515.readMessage(&rawCanMsg);
-
   CanMsg[0] = time>>24;
   CanMsg[1] = time>>16;
   CanMsg[2] = time>>8;
@@ -62,13 +59,11 @@ void readCAN (){
   CanMsg[11] = rawCanMsg.data[5];
   CanMsg[12] = rawCanMsg.data[6];
   CanMsg[13] = rawCanMsg.data[7];
-
   for(byte i = 0; i <= 15; i++){
     *psave = CanMsg[i];
     psave++;
   }
-
-  if(psave >= buf+160){
+  if(psave >= buf+sizeBuff){
     psave = buf;
   }
 }
