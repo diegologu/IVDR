@@ -58,13 +58,14 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(interruptPin), comined, LOW);
     break;
 
-    case 5: //OBD2 DTC
+    case 5: // OBD2 DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
 
-    case 6:
-
+    case 6: // Borrar DTC
+    pit();
+    attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
   }
 }
@@ -100,11 +101,15 @@ void pit() {
   SREG = (SREG & 0b01111111) | 0b10000000; //Habilitar interrupciones globales
   OBD2_Msg.can_id = 0x7DF;
 
-  if (opMode == 5) //DTC {
+  if (opMode == 5) /*DTC*/ {
     OBD2_Msg.dlc = 0x01;
     OBD2_Msg.mode = 0x03;
     OBD2_Msg.PID = 0x00;
-  } else //PID {
+  } else if(opMode == 6) /*delete DTC*/ {
+    OBD2_Msg.dlc = 0x01;
+    OBD2_Msg.mode = 0x04;
+    OBD2_Msg.PID = 0x00;
+  }else /*PID*/{
     OBD2_Msg.dlc = 0x02;
     OBD2_Msg.mode = 0x01;
     OBD2_Msg.PID = PIDs_OBD2[iPID];

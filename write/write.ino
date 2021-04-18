@@ -30,7 +30,7 @@ void setup() {
   canMsg2.data[6] = 0x67; //g
   canMsg2.data[7] = 0x68; //h
 
-  canMsg3.can_id  = 0x724; //$
+  canMsg3.can_id  = 0x7E8; //$
   canMsg3.can_dlc = 8;
   canMsg3.data[0] = 0x30; //0
   canMsg3.data[1] = 0x31; //1
