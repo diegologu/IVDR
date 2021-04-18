@@ -43,26 +43,21 @@ void setup() {
     case 1: // sniffer
     attachInterrupt(digitalPinToInterrupt(interruptPin), sniffer, LOW);
     break;
-
     case 2: // specfic id
     attachInterrupt(digitalPinToInterrupt(interruptPin), specID, LOW);
     break;
-
     case 3: // OBD2 PID
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
-
     case 4: // combined
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), comined, LOW);
     break;
-
     case 5: // OBD2 DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
-
     case 6: // Borrar DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
