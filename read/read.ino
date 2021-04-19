@@ -36,9 +36,6 @@ void setup() {
   CanMsg[14] = 13;
   CanMsg[15] = 10;
 
-
-
-
   switch (opMode) {
     case 1: // sniffer
     attachInterrupt(digitalPinToInterrupt(interruptPin), sniffer, LOW);
@@ -52,13 +49,13 @@ void setup() {
     break;
     case 4: // combined
     pit();
-    attachInterrupt(digitalPinToInterrupt(interruptPin), comined, LOW);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), combined, LOW);
     break;
     case 5: // OBD2 DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
-    case 6: // Borrar DTC
+    case 6: // OBD2 Borrar DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
