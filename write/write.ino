@@ -70,5 +70,7 @@ void loop() {
   delay(50);
   mcp2515.sendMessage(&canMsg3);
   delay(50);
+  mcp2515.sendMessage(&canMsg4);
+  delay(50);
 
 }
