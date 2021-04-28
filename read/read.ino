@@ -9,7 +9,7 @@ struct obd2_frame {
     byte PID;
     byte data[4];
 };
-byte OBD2_Msg[10];
+struct can_frame OBD2_Msg;
 
 MCP2515 mcp2515(10);
 
@@ -19,13 +19,13 @@ byte iPID = 0;
 const byte interruptPin = 2;
 unsigned long time = 0;
 const byte sizeBuff = 128;
-byte CanMsg[16];
 byte buf[sizeBuff];
 byte* pserial = buf;
 byte* psave = buf;
 
 const byte opMode = 1; // :)
-const unsigned long spID = 0x0C;
+const byte spID_size = 3;
+const byte spID[] = {0x740, 0x63D, 0x646};
 
 void setup() {
   Serial.begin(115200);
@@ -33,8 +33,6 @@ void setup() {
   mcp2515.setBitrate(CAN_500KBPS, MCP_8MHZ);
   mcp2515.setNormalMode();
   pinMode(interruptPin, INPUT_PULLUP);
-  CanMsg[14] = 13;
-  CanMsg[15] = 10;
 
   switch (opMode) {
     case 1: // sniffer
@@ -63,8 +61,6 @@ void setup() {
 }
 
 void loop() {
-  byte* temp8 = buf+sizeBuff;
-
   while(pserial != psave){
     Serial.write(*pserial);
     pserial++;
@@ -76,13 +72,9 @@ void loop() {
 
 ISR(TIMER2_OVF_vect){ //funcion del PIT cada 32.64ms
   mcp2515.sendMessage(&OBD2_Msg);
-  Serial.print("Request enviado con PID: ");
-  Serial.println(PIDs_OBD2[iPID]);
   iPID++;
-  if(iPID == size_PIDs){
-    iPID = 0;
-  }
-  OBD2_Msg.PID = PIDs_OBD2[iPID];
+  iPID = iPID % size_PIDs;
+  OBD2_Msg.data[2] = PIDs_OBD2[iPID];
 }
 
 void pit() {
@@ -94,23 +86,24 @@ void pit() {
   OBD2_Msg.can_id = 0x7DF;
 
   if (opMode == 5) /*DTC*/ {
-    OBD2_Msg.dlc = 0x01;
-    OBD2_Msg.mode = 0x03;
-    OBD2_Msg.PID = 0x00;
+    OBD2_Msg.data[0] = 0x01; //dlc
+    OBD2_Msg.data[1] = 0x03; //mode
+    OBD2_Msg.data[2] = 0x00; //PID
   } else if(opMode == 6) /*delete DTC*/ {
-    OBD2_Msg.dlc = 0x01;
-    OBD2_Msg.mode = 0x04;
-    OBD2_Msg.PID = 0x00;
+    OBD2_Msg.data[0] = 0x01; //dlc
+    OBD2_Msg.data[1] = 0x04; //mode
+    OBD2_Msg.data[2] = 0x00; //PID
   }else /*PID*/{
-    OBD2_Msg.dlc = 0x02;
-    OBD2_Msg.mode = 0x01;
-    OBD2_Msg.PID = PIDs_OBD2[iPID];
+    OBD2_Msg.data[0] = 0x02; //dlc
+    OBD2_Msg.data[1] = 0x01; //mode
+    OBD2_Msg.data[2] = PIDs_OBD2[iPID]; // PID (iPID empieza en 0)
   }
 
-  OBD2_Msg.data[0] = 0x00;
-  OBD2_Msg.data[1] = 0x00;
-  OBD2_Msg.data[2] = 0x00;
   OBD2_Msg.data[3] = 0x00;
+  OBD2_Msg.data[4] = 0x00;
+  OBD2_Msg.data[5] = 0x00;
+  OBD2_Msg.data[6] = 0x00;
+  OBD2_Msg.data[6] = 0x00;
 }
 
 void readMCP() {
@@ -124,30 +117,62 @@ void readMCP() {
   }
   time = millis();
   mcp2515.readMessage(&rawCanMsg);
-  CanMsg[0] = time>>24;
-  CanMsg[1] = time>>16;
-  CanMsg[2] = time>>8;
-  CanMsg[3] = time;
-  CanMsg[4] = rawCanMsg.can_id >> 8;
-  CanMsg[5] = rawCanMsg.can_id;
-  CanMsg[6] = rawCanMsg.data[0];
-  CanMsg[7] = rawCanMsg.data[1];
-  CanMsg[8] = rawCanMsg.data[2];
-  CanMsg[9] = rawCanMsg.data[3];
-  CanMsg[10] = rawCanMsg.data[4];
-  CanMsg[11] = rawCanMsg.data[5];
-  CanMsg[12] = rawCanMsg.data[6];
-  CanMsg[13] = rawCanMsg.data[7];
+
 }
 
 void writeBuff(){
-  for(byte i = 0; i <= 15; i++){
-    *psave = CanMsg[i];
-    psave++;
-  }
+
+  //desactivar int globales para escribir sin preocupacion?
+
+  *psave = time>>24;
+  psave++;
+  *psave = time>>16;
+  psave++;
+  *psave = time>>8;
+  psave++;
+  *psave = time;
+  psave++;
+  *psave = rawCanMsg.can_id >> 8;
+  psave++;
+  *psave = rawCanMsg.can_id;
+  psave++;
+  *psave = rawCanMsg.data[0];
+  psave++;
+  *psave = rawCanMsg.data[1];
+  psave++;
+  *psave = rawCanMsg.data[2];
+  psave++;
+  *psave = rawCanMsg.data[3];
+  psave++;
+  *psave = rawCanMsg.data[4];
+  psave++;
+  *psave = rawCanMsg.data[5];
+  psave++;
+  *psave = rawCanMsg.data[6];
+  psave++;
+  *psave = rawCanMsg.data[7];
+  psave++;
+  *psave = 13;
+  psave++;
+  *psave = 10;
+  psave++;
+
   if(psave >= buf+sizeBuff){
     psave = buf;
   }
+}
+
+bool isSpecIdReq(){
+  for(byte k = 0; k<spID_size; k++){
+    if(rawCanMsg.can_id == spID[k]){
+      return 1;
+    }
+  }
+  return 0;
+}
+
+bool isObd2Msg(){
+  return rawCanMsg.can_id == 0x7E8;
 }
 
 void sniffer() {
@@ -157,21 +182,21 @@ void sniffer() {
 
 void specID() {
   readMCP();
-  if (rawCanMsg.can_id == spID) {
+  if (isSpecIdReq()) {
     writeBuff();
   }
 }
 
 void obd2() {
   readMCP();
-  if (rawCanMsg.can_id == 0x7E8) {
+  if (isObd2Msg()) {
     writeBuff();
   }
 }
 
 void combined() {
   readMCP();
-  if (rawCanMsg.can_id == 0x7E8 || rawCanMsg.can_id == spID) {
+  if (isObd2Msg() || isSpecIdReq()){
     writeBuff();
   }
 }
