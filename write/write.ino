@@ -4,6 +4,7 @@
 struct can_frame canMsg1;
 struct can_frame canMsg2;
 struct can_frame canMsg3;
+struct can_frame canMsg4;
 MCP2515 mcp2515(10);
 
 
@@ -30,16 +31,27 @@ void setup() {
   canMsg2.data[6] = 0x67; //g
   canMsg2.data[7] = 0x68; //h
 
-  canMsg3.can_id  = 0x7E8; //$
+  canMsg3.can_id  = 0x646; //&
   canMsg3.can_dlc = 8;
-  canMsg3.data[0] = 0x30; //0
-  canMsg3.data[1] = 0x31; //1
-  canMsg3.data[2] = 0x32; //2
-  canMsg3.data[3] = 0x33; //3
-  canMsg3.data[4] = 0x34; //4
-  canMsg3.data[5] = 0x35; //5
-  canMsg3.data[6] = 0x36; //6
-  canMsg3.data[7] = 0x37; //7
+  canMsg3.data[0] = 0x5B; //[
+  canMsg3.data[1] = 0x7E; //~
+  canMsg3.data[2] = 0x5D; //]
+  canMsg3.data[3] = 0x5E; //^
+  canMsg3.data[4] = 0x5F; //_
+  canMsg3.data[5] = 0x7B; //{
+  canMsg3.data[6] = 0x7C; //|
+  canMsg3.data[7] = 0x7D; //}
+
+  canMsg4.can_id  = 0x7E8; //$
+  canMsg4.can_dlc = 8;
+  canMsg4.data[0] = 0x30; //0
+  canMsg4.data[1] = 0x31; //1
+  canMsg4.data[2] = 0x32; //2
+  canMsg4.data[3] = 0x33; //3
+  canMsg4.data[4] = 0x34; //4
+  canMsg4.data[5] = 0x35; //5
+  canMsg4.data[6] = 0x36; //6
+  canMsg4.data[7] = 0x37; //7
 
   while (!Serial);
   Serial.begin(115200);
