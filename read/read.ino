@@ -2,17 +2,8 @@
 #include <mcp2515.h>
 
 struct can_frame rawCanMsg;
-struct obd2_frame {
-    unsigned long can_id;
-    byte dlc;
-    byte mode;
-    byte PID;
-    byte data[4];
-};
 struct can_frame OBD2_Msg;
-
 MCP2515 mcp2515(10);
-
 const byte PIDs_OBD2[] = { 0x0C, 0x0D, 0x0A};
 const byte size_PIDs = 3;
 byte iPID = 0;
@@ -22,8 +13,7 @@ const byte sizeBuff = 128;
 byte buf[sizeBuff];
 byte* pserial = buf;
 byte* psave = buf;
-
-const byte opMode = 1; // :)
+const byte opMode = 1;
 const byte spID_size = 3;
 const byte spID[] = {0x740, 0x63D, 0x646};
 
@@ -38,7 +28,7 @@ void setup() {
     case 1: // sniffer
     attachInterrupt(digitalPinToInterrupt(interruptPin), sniffer, LOW);
     break;
-    case 2: // specfic id
+    case 2: // specific id
     attachInterrupt(digitalPinToInterrupt(interruptPin), specID, LOW);
     break;
     case 3: // OBD2 PID
@@ -53,7 +43,7 @@ void setup() {
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
-    case 6: // OBD2 Borrar DTC
+    case 6: // OBD2 Delete DTC
     pit();
     attachInterrupt(digitalPinToInterrupt(interruptPin), obd2, LOW);
     break;
@@ -70,7 +60,7 @@ void loop() {
   }
 }
 
-ISR(TIMER2_OVF_vect){ //funcion del PIT cada 32.64ms
+ISR(TIMER2_OVF_vect){ //PIT function every 32.64ms
   mcp2515.sendMessage(&OBD2_Msg);
   iPID++;
   iPID = iPID % size_PIDs;
@@ -78,11 +68,11 @@ ISR(TIMER2_OVF_vect){ //funcion del PIT cada 32.64ms
 }
 
 void pit() {
-  SREG = (SREG & 0b01111111);//deshabilitar interrupciones globales
-  TCNT2 = 0; // limpiar registro de la cuenta del timer-2
-  TIMSK2 = TIMSK2 | 0b00000001; //habilita interrupcion por Overflow
-  TCCR2B = 0b00000111; // reloj a 7812.5 Hz
-  SREG = (SREG & 0b01111111) | 0b10000000; //Habilitar interrupciones globales
+  SREG = (SREG & 0b01111111);//Global interruption OFF
+  TCNT2 = 0; // celan timer-2 register
+  TIMSK2 = TIMSK2 | 0b00000001; //Overflow interruption
+  TCCR2B = 0b00000111; // clock at 7812.5 Hz
+  SREG = (SREG & 0b01111111) | 0b10000000; //Global interruption ON
   OBD2_Msg.can_id = 0x7DF;
 
   if (opMode == 5) /*DTC*/ {
@@ -96,7 +86,7 @@ void pit() {
   }else /*PID*/{
     OBD2_Msg.data[0] = 0x02; //dlc
     OBD2_Msg.data[1] = 0x01; //mode
-    OBD2_Msg.data[2] = PIDs_OBD2[iPID]; // PID (iPID empieza en 0)
+    OBD2_Msg.data[2] = PIDs_OBD2[iPID]; // PID (iPID starts at 0)
   }
 
   OBD2_Msg.data[3] = 0x00;
@@ -121,8 +111,6 @@ void readMCP() {
 }
 
 void writeBuff(){
-
-  //desactivar int globales para escribir sin preocupacion?
 
   *psave = time>>24;
   psave++;
@@ -162,19 +150,6 @@ void writeBuff(){
   }
 }
 
-bool isSpecIdReq(){
-  for(byte k = 0; k<spID_size; k++){
-    if(rawCanMsg.can_id == spID[k]){
-      return 1;
-    }
-  }
-  return 0;
-}
-
-bool isObd2Msg(){
-  return rawCanMsg.can_id == 0x7E8;
-}
-
 void sniffer() {
   readMCP();
   writeBuff();
@@ -182,21 +157,27 @@ void sniffer() {
 
 void specID() {
   readMCP();
-  if (isSpecIdReq()) {
-    writeBuff();
+  for(byte k = 0; k<spID_size; k++){
+      if(rawCanMsg.can_id == spID[k]){
+      writeBuff();
+    }
   }
 }
 
 void obd2() {
   readMCP();
-  if (isObd2Msg()) {
+  if (rawCanMsg.can_id == 0x7E8) {
     writeBuff();
   }
 }
 
 void combined() {
   readMCP();
-  if (isObd2Msg() || isSpecIdReq()){
-    writeBuff();
+  if (rawCanMsg.can_id == 0x7E8){
+    for(byte k = 0; k<spID_size; k++){
+      if(rawCanMsg.can_id == spID[k]){
+          writeBuff();
+      }
+    }
   }
 }
